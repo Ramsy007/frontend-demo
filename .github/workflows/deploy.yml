@@ -29,6 +29,6 @@ jobs:
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}   # 🔥 yaha change kiya
           source: "dist/*"
           target: "~/dist"
