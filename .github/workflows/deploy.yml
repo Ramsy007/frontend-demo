@@ -28,7 +28,17 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
+          username: ec2-user   # yaha fix: hardcode kar de (Amazon Linux → ec2-user, Ubuntu → ubuntu)
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "dist/*"
           target: "/home/ec2-user/frontend-app/dist"
+
+      - name: Restart Nginx (or serve app)
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            mkdir -p /home/ec2-user/frontend-app/dist
+            sudo systemctl restart nginx
