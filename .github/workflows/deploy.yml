@@ -3,38 +3,29 @@ name: Deploy Frontend to EC2
 on:
   push:
     branches:
-      - main
+      - main   # runs only when code is pushed to main branch
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build project
-        run: npm run build
-
-      # 🔍 Debug Secrets yaha add kar
-      - name: Debug Secrets
+      - name: Set up SSH key
         run: |
-          echo "EC2 Host -> ${{ secrets.EC2_HOST }}"
-          echo "SSH Key length -> $(echo "${{ secrets.EC2_SSH_KEY }}" | wc -c)"
+          echo "${{ secrets.EC2_SSH_KEY }}" > ec2_key.pem
+          chmod 600 ec2_key.pem
 
-      - name: Copy build files to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "dist/*"
-          target: "/home/ec2-user/frontend-app/dist"
+      - name: Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ec2_key.pem ec2-user@65.0.31.163 "
+            cd ~/frontend-demo &&
+            git pull origin main &&
+            npm install --legacy-peer-deps &&
+            npm run build &&
+            sudo rm -rf /usr/share/nginx/html/* &&
+            sudo cp -r dist/* /usr/share/nginx/html/ &&
+            sudo systemctl restart nginx
+          "
