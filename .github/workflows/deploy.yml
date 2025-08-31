@@ -3,7 +3,7 @@ name: Deploy Frontend to EC2
 on:
   push:
     branches:
-      - main
+      - main   # runs only when you push to main branch
 
 jobs:
   deploy:
@@ -13,11 +13,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Add SSH key
+      - name: Setup SSH
         run: |
-          echo "${{ secrets.EC2_SSH_KEY }}" > ec2_key.pem
-          chmod 600 ec2_key.pem
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy to EC2
         run: |
-          ssh -o StrictHostKeyChecking=no -i ec2_key.pem ec2-user@65.0.31.163 "echo Connected!"
+          ssh -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+            cd /home/ec2-user/frontend-demo
+
+            # Pull latest code
+            git pull origin main
+
+            # Install dependencies and build
+            npm install
+            npm run build
+
+            # Restart your app (example with PM2)
+            pm2 restart frontend || pm2 start npm --name "frontend" -- start
+          EOF
